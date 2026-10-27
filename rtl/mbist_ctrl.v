@@ -51,12 +51,13 @@ module mbist_ctrl #(
     localparam [ADDR_W-1:0] ADDR_MAX = {ADDR_W{1'b1}};
     localparam [DATA_W-1:0] CHKBD    = {DATA_W{2'b01}};    // ...0101
 
-    localparam [1:0] S_IDLE  = 2'd0,
-                     S_ARM   = 2'd1,
-                     S_RUN   = 2'd2,
-                     S_FLUSH = 2'd3;
+    localparam [2:0] S_IDLE  = 3'd0,
+                     S_ARM   = 3'd1,
+                     S_RUN   = 3'd2,
+                     S_FLUSH = 3'd3,
+                     S_DONE  = 3'd4;
 
-    reg [1:0]        st;
+    reg [2:0]        st;
     reg [2:0]        elem;
     reg              step;
     reg [ADDR_W-1:0] addr;
@@ -137,8 +138,13 @@ module mbist_ctrl #(
                     end
                 end
 
-                // wait for the last read to come back
-                S_FLUSH: st <= S_IDLE;
+                // last read comes back and gets compared here
+                S_FLUSH: st <= S_DONE;
+
+                // done goes up one cycle after fail/fail_addr are final.
+                // done is what the TCK side keys on, so it has to be the
+                // last thing to change.
+                S_DONE:  st <= S_IDLE;
 
                 default: st <= S_IDLE;
             endcase
@@ -174,7 +180,7 @@ module mbist_ctrl #(
                 fail      <= 1'b1;
                 fail_addr <= addr_q;
             end
-            if (st == S_FLUSH)
+            if (st == S_DONE)
                 done <= 1'b1;
         end
     end

@@ -11,8 +11,9 @@ module tb_mbist;
     localparam int DATA_W = 8;
     localparam int N      = 1 << ADDR_W;
 
-    // edge detect + ARM cycle + read latency of the final r0
-    localparam int EXP_CYCLES = 10*N + 3;
+    // edge detect + ARM + read latency of the final r0 + one cycle so
+    // done comes after fail is final
+    localparam int EXP_CYCLES = 10*N + 4;
 
     logic sys_clk = 1'b0;
     logic sys_rst_n = 1'b0;
