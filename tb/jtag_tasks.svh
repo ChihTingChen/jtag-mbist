@@ -19,6 +19,10 @@ localparam int   WR_IDLE   = 4;
 // scan ends with Update-DR, so a plain "read" also writes the control bits.
 logic [2:0] mbist_ctl_shadow = 3'b000;
 
+// last instruction we loaded, so back-to-back TDR accesses can skip the
+// IR scan like a real test program would
+logic [3:0] cur_ir = IR_IDCODE;
+
 // one TCK: drive tms/tdi, strobe tdo
 task automatic jtag_clk(input logic tms_v, input logic tdi_v, output logic tdo_v);
     @(negedge tck);
@@ -41,6 +45,8 @@ endtask
 task automatic jtag_reset();
     repeat (5) jtag_tms(1'b1);
     jtag_tms(1'b0);
+    cur_ir = IR_IDCODE;
+    mbist_ctl_shadow = 3'b000;
 endtask
 
 // shift_ir that also returns what came out of the IR (the capture value)
@@ -58,6 +64,7 @@ task automatic shift_ir_cap(input logic [3:0] instr, output logic [3:0] cap);
     end
     jtag_tms(1'b1);                 // Update-IR
     jtag_tms(1'b0);                 // Run-Test/Idle
+    cur_ir = instr;
 endtask
 
 task automatic shift_ir(input logic [3:0] instr);
@@ -86,17 +93,18 @@ endtask
 task automatic mbist_write(input logic start, input logic [1:0] algo_sel);
     logic [63:0] dout;
     mbist_ctl_shadow = {algo_sel, start};
-    shift_ir(IR_MBIST);
+    if (cur_ir != IR_MBIST) shift_ir(IR_MBIST);
     shift_dr({61'd0, algo_sel, start}, 16, dout);
     // done/fail come back through 2 TCK flops. Give the sys side time to
     // clear the old done before anyone captures the status again,
-    // otherwise a fast poll can see done=1 from the previous run.
+    // otherwise a poll right after this (no IR scan in between) sees
+    // done=1 left over from the previous run.
     jtag_idle(WR_IDLE);
 endtask
 
 task automatic mbist_read_raw(output logic [15:0] tdr);
     logic [63:0] dout;
-    shift_ir(IR_MBIST);
+    if (cur_ir != IR_MBIST) shift_ir(IR_MBIST);
     shift_dr({61'd0, mbist_ctl_shadow}, 16, dout);
     tdr = dout[15:0];
 endtask
