@@ -1,0 +1,9 @@
+sim/work/
+sim/transcript
+sim/*.wlf
+sim/*.vcd
+sim/*.log
+sim/wlf*
+*.vstf
+__pycache__/
+patterns/out/
