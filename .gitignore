@@ -6,4 +6,4 @@ sim/*.log
 sim/wlf*
 *.vstf
 __pycache__/
-patterns/out/
+sim/out/
