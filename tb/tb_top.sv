@@ -215,4 +215,12 @@ module tb_top;
         $fatal(1, "tb_top: timeout");
     end
 
+    // +DUMP for a VCD (iverilog/gtkwave), ModelSim uses wave.do instead
+    initial begin
+        if ($test$plusargs("DUMP")) begin
+            $dumpfile("out/tb_top.vcd");
+            $dumpvars(0, tb_top);
+        end
+    end
+
 endmodule
